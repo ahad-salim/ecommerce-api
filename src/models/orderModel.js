@@ -1,0 +1,30 @@
+import mongoose from "mongoose";
+
+const orderSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    totalAmount: {
+      type: Number,
+    },
+    status: {
+      type: Boolean,
+      enum: ["pending", "paid", "shipped", "cancelled"],
+      default: "pending",
+    },
+    shippingAddress: {
+      street: String,
+      city: String,
+      country: String,
+      postalCode: String,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+export default mongoose.model("Order", orderSchema);
