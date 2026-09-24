@@ -18,17 +18,22 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      validator: function (v) {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+      unique: true,
+      lowercase: true,
+      validate: {
+        validator: function (v) {
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+        },
+        message: "Invalid email format",
       },
-      message: "Invalid email format",
     },
 
     password: {
       type: String,
       required: true,
-      min: 8,
-      max: 15,
+      minlength: 8,
+      maxlength: 15,
+      select: false
     },
 
     role: {
