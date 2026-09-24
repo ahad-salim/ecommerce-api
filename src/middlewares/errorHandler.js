@@ -1,4 +1,4 @@
-import { errorResponse } from "../utils/apiResponces";
+import { errorResponse } from "../utils/responceFomater.js";
 
 export default function errorHandler(err, req, res, next) {
   console.error(err.stack);
