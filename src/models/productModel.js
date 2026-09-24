@@ -12,11 +12,12 @@ const productSchema = new mongoose.Schema({
     type: Number,
   },
   stock: {
-    type: String,
+    type: Number,
+    min: 0
   },
   category: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Order",
+    ref: "Category",
   },
 });
 

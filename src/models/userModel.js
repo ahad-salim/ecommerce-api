@@ -1,39 +1,49 @@
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-  },
-
-  email: {
-    type: String,
-    required: true,
-    trim: true,
-    validator: function (v) {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+const userSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      validate: {
+        validator: function (v) {
+          return v.trim().split(/\s+/).length >= 2;
+        },
+        message: "Please enter at least two names (e.g. John Doe)",
+      },
     },
-    message: "Invalid email format",
-  },
 
-  passwordHash: {
-    type: String,
-    required: true,
-    min: 6,
-    max: 15,
-  },
+    email: {
+      type: String,
+      required: true,
+      trim: true,
+      validator: function (v) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+      },
+      message: "Invalid email format",
+    },
 
-  role: {
-    type: String,
-    default: "customer",
-    enum: ["customer", "admin"],
-  },
-  isVerified: {
-    type: Boolean,
-    default: false,
-  },
-}, {
-    timestamps: true
-});
+    password: {
+      type: String,
+      required: true,
+      min: 8,
+      max: 15,
+    },
 
-export default mongoose.model("User", userSchema)
+    role: {
+      type: String,
+      default: "customer",
+      enum: ["customer", "admin"],
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+export default mongoose.model("User", userSchema);
