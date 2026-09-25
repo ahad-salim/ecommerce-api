@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { string } from "zod";
 
 const userSchema = new mongoose.Schema(
   {
@@ -32,7 +33,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       minlength: 8,
-
     },
 
     role: {
@@ -43,6 +43,12 @@ const userSchema = new mongoose.Schema(
     isVerified: {
       type: Boolean,
       default: false,
+    },
+    emailVerificationToken: {
+      type: String,
+    },
+    emailVerificationExpires: {
+      type: Date,
     },
   },
   {
