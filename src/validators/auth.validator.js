@@ -19,7 +19,7 @@ export const registerSchema = z.object({
         /[^A-Za-z0-9]/.test(password),
       {
         message:
-          "Password must be atleast 8 charaters long and contain uppercase, lowercase, number, and special character",
+          "Please choose a stronger password. try a mix of letters, numbers and symbols",
       },
     ),
 });
