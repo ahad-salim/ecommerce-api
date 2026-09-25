@@ -1,5 +1,6 @@
 import User from "../models/userModel.js";
-import bcrypt from 'bcrypt'
+import { hashPassword } from "../utils/password.js";
+// import bcrypt from 'bcrypt'
 
 async function checkIfUserExist(email) {
   const user = await User.findOne({ email });
@@ -8,26 +9,37 @@ async function checkIfUserExist(email) {
 }
 
 async function registerNewUser({ name, email, password }) {
+
+  // if (password.length < 8) {
+  //   return {
+  //     success: false,
+  //     message: "Password must be at least 8 characters",
+  //   };
+  // }
   const exist = await checkIfUserExist(email);
 
   if (exist) {
     return { success: false, message: "User already exists" };
   }
 
-  const hashedPassword = await bcrypt.hash(password, 12);
+
+  // const hashedPassword = await bcrypt.hash(password, 12);
 
   const newUser = await User.create({
     name,
     email,
-    password: hashedPassword,
-    role,
+    password: await hashPassword(password),
   });
 
   return {
     success: true,
-    data: { name, email, password: hashedPassword, role },
+    data: {
+      id: newUser._id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+    },
   };
 }
 
-
-export { checkIfUserExist, registerNewUser }
+export { checkIfUserExist, registerNewUser };
