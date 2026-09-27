@@ -6,7 +6,6 @@ import {
   generateRefreshToken,
   hashRefreshToken,
 } from "../utils/jwt.js";
-import { errorResponse } from "../utils/responseFormatter.js";
 
 async function checkIfUserExist(email) {
   const user = await User.findOne({ email });
@@ -109,5 +108,83 @@ async function loginUser({ email, password }) {
   };
 }
 
+async function refreshUserToken(refreshToken) {
+  if (!refreshToken) {
+    return {
+      success: false,
+      statusCode: 401,
+      message: "Refresh token is required",
+    };
+  }
 
-export { checkIfUserExist, registerNewUser, loginUser,};
+  const tokenHash = hashRefreshToken(refreshToken);
+
+  const storedToken = await RefreshToken.findOne({ tokenHash }).populate(
+    "user",
+  );
+
+  if (!storedToken) {
+    return {
+      success: false,
+      statusCode: 401,
+      message: "Invalid refresh token",
+    };
+  }
+
+  if (storedToken.revokedAt) {
+    return {
+      success: false,
+      statusCode: 401,
+      message: "Refresh token has been revoked",
+    };
+  }
+
+  if (storedToken.expiresAt <= new Date()) {
+    return {
+      success: false,
+      statusCode: 401,
+      message: "refresh token has expired",
+    };
+  }
+
+  const user = storedToken.user;
+
+  if (!user) {
+    return {
+      success: false,
+      statusCode: 401,
+      message: "User no longer exist",
+    };
+  }
+
+  storedToken.revokedAt = new Date();
+  await storedToken.save();
+
+  const newAccessToken = generateAccessToken(user);
+
+  const newRefreshToken = generateRefreshToken();
+
+  const newTokenHash = hashRefreshToken(newRefreshToken);
+
+  const expiresAt = new Date();
+
+  expiresAt.setDate(
+    expiresAt.getDate() + Number(process.env.REFRESH_TOKEN_EXPIRES_DAYS || 7),
+  );
+
+  await RefreshToken.create({
+    user: user._id,
+    tokenHash: newTokenHash,
+    expiresAt,
+  });
+
+  return {
+    success: true,
+    data: {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+    },
+  };
+}
+
+export { checkIfUserExist, registerNewUser, loginUser, refreshUserToken };
