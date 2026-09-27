@@ -1,7 +1,7 @@
 import { verifyAccessToken } from "../utils/jwt.js";
 import { errorResponse } from "../utils/responseFormatter.js";
 
-export default function authenticate (req, res, next)  {
+export default function authenticate(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
 
@@ -27,5 +27,4 @@ export default function authenticate (req, res, next)  {
   } catch (error) {
     return errorResponse(res, "Invalid or expired access token", [], 401);
   }
-};
-
+}

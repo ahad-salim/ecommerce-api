@@ -1,4 +1,3 @@
-import { success } from "zod";
 import User from "../models/userModel.js";
 import { errorResponse } from "../utils/responseFormatter.js";
 
