@@ -1,4 +1,8 @@
-import { loginUser, registerNewUser } from "../services/auth.service.js";
+import {
+  loginUser,
+  refreshUserToken,
+  registerNewUser,
+} from "../services/auth.service.js";
 import { errorResponse, successResponse } from "../utils/responseFormatter.js";
 
 const registerUser = async (req, res, next) => {
@@ -13,7 +17,12 @@ const registerUser = async (req, res, next) => {
       // });
     }
     console.log(result);
-    return successResponse(res, "Account Created Successfully", result.data, 201);
+    return successResponse(
+      res,
+      "Account Created Successfully",
+      result.data,
+      201,
+    );
   } catch (err) {
     console.error("register error:", err);
     next(err);
@@ -25,7 +34,12 @@ const login = async (req, res, next) => {
     const result = await loginUser(req.body);
 
     if (!result.success) {
-      return errorResponse(res, result.message, result.error, result.statusCode);
+      return errorResponse(
+        res,
+        result.message,
+        result.error,
+        result.statusCode,
+      );
     }
 
     console.log(result);
@@ -36,4 +50,24 @@ const login = async (req, res, next) => {
   }
 };
 
-export { registerUser, login };
+const refreshToken = async (req, res, next) => {
+  try {
+    const result = await refreshUserToken(req.body.refreshToken);
+
+    if (!result.success) {
+      return errorResponse(
+        res,
+        result.message,
+        result.error,
+        result.statusCode,
+      );
+    }
+
+    return successResponse(res, "Token refreshed successfully", result.data);
+  } catch (err) {
+    console.error("refresh token error:", err);
+    next(err);
+  }
+};
+
+export { registerUser, login, refreshToken };
