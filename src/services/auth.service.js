@@ -187,4 +187,35 @@ async function refreshUserToken(refreshToken) {
   };
 }
 
-export { checkIfUserExist, registerNewUser, loginUser, refreshUserToken };
+async function logoutUser(refreshToken) {
+  if (!refreshToken) {
+    return {
+      success: false,
+      statusCode: 401,
+      message: "Refresh token is required",
+    };
+  }
+
+  const tokenHash = hashRefreshToken(refreshToken);
+
+  const storedToken = await RefreshToken.findOne({ tokenHash });
+
+  if (!storedToken) {
+    return {
+      success: true,
+      statusCode: 401,
+      message: "Logout successful",
+    };
+  }
+
+  storedToken.revokedAt = new Date();
+
+  await storedToken.save();
+
+  return {
+    success: true,
+    message: "Logout successfull",
+  };
+}
+
+export { checkIfUserExist, registerNewUser, loginUser, refreshUserToken, logoutUser };
