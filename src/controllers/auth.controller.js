@@ -12,10 +12,7 @@ const registerUser = async (req, res, next) => {
 
     if (!result.success) {
       return errorResponse(res, result.message, result.error, 409);
-      // res.status(409).json({
-      //   success: false,
-      //   message: result.message,
-      // });
+      
     }
     console.log(result);
     return successResponse(

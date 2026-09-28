@@ -6,7 +6,7 @@ const getCurrentUser = async (req, res, next) => {
     const user = await User.findById(req.user.id);
 
     if (!user) {
-      return errorResponse(res, "User not found", [], 404);
+      return errorResponse(res, "User not found", ["USER_NOT_FOUND"], 404);
     }
 
      console.log(user);
@@ -21,7 +21,7 @@ const getCurrentUser = async (req, res, next) => {
       },
     });
   } catch (error) {
-    console.error("Get user error:", err);
+    console.error("Get user error:", error);
     next(error);
   }
 };

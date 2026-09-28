@@ -14,16 +14,14 @@ async function checkIfUserExist(email) {
 }
 
 async function registerNewUser({ name, email, password }) {
-  // if (password.length < 8) {
-  //   return {
-  //     success: false,
-  //     message: "Password must be at least 8 characters",
-  //   };
-  // }
   const exist = await checkIfUserExist(email);
 
   if (exist) {
-    return { success: false, message: "User already exists" };
+    return {
+      success: false,
+      message: "User already exists",
+      error: ["USER_ALREADY_EXIST"],
+    };
   }
 
   // const hashedPassword = await bcrypt.hash(password, 12);
@@ -53,6 +51,7 @@ async function loginUser({ email, password }) {
       success: false,
       statusCode: 401,
       message: "Invalid email or password",
+      error: ["INVALID_CREDENTIALS"],
     };
   }
 
@@ -63,6 +62,7 @@ async function loginUser({ email, password }) {
       success: false,
       statusCode: 401,
       message: "Invalid email or password",
+      error: ["INVALID_CREDENTIALS"],
     };
   }
 
@@ -114,6 +114,7 @@ async function refreshUserToken(refreshToken) {
       success: false,
       statusCode: 401,
       message: "Refresh token is required",
+      error: ["REFRESH_TOKEN_REQUIRED"],
     };
   }
 
@@ -128,6 +129,7 @@ async function refreshUserToken(refreshToken) {
       success: false,
       statusCode: 401,
       message: "Invalid refresh token",
+      error: ["INVALID_REFRESH_TOKEN"],
     };
   }
 
@@ -135,7 +137,8 @@ async function refreshUserToken(refreshToken) {
     return {
       success: false,
       statusCode: 401,
-      message: "Refresh token has been revoked",
+      message: "This refresh token has been revoked",
+      error: ["REFRESH_TOKEN_REVOKED"],
     };
   }
 
@@ -143,7 +146,8 @@ async function refreshUserToken(refreshToken) {
     return {
       success: false,
       statusCode: 401,
-      message: "refresh token has expired",
+      message: "This refresh token has expired",
+      error: ["REFRESH_TOKEN_EXPIRED"],
     };
   }
 
@@ -154,6 +158,7 @@ async function refreshUserToken(refreshToken) {
       success: false,
       statusCode: 401,
       message: "User no longer exist",
+      error: ["USER_NO_LONGER EXIST"],
     };
   }
 
@@ -193,6 +198,7 @@ async function logoutUser(refreshToken) {
       success: false,
       statusCode: 401,
       message: "Refresh token is required",
+      error: ["REFRESH_TOKEN_REQUIRED"],
     };
   }
 
@@ -203,7 +209,7 @@ async function logoutUser(refreshToken) {
   if (!storedToken) {
     return {
       success: true,
-      statusCode: 401,
+      statusCode: 200,
       message: "Logout successful",
     };
   }
@@ -214,8 +220,14 @@ async function logoutUser(refreshToken) {
 
   return {
     success: true,
-    message: "Logout successfull",
+    message: "Logout successful",
   };
 }
 
-export { checkIfUserExist, registerNewUser, loginUser, refreshUserToken, logoutUser };
+export {
+  checkIfUserExist,
+  registerNewUser,
+  loginUser,
+  refreshUserToken,
+  logoutUser,
+};
