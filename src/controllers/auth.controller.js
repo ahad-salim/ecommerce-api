@@ -1,5 +1,6 @@
 import {
   loginUser,
+  logoutUser,
   refreshUserToken,
   registerNewUser,
 } from "../services/auth.service.js";
@@ -62,7 +63,7 @@ const refreshToken = async (req, res, next) => {
         result.statusCode,
       );
     }
-
+     console.log(result);
     return successResponse(res, "Token refreshed successfully", result.data);
   } catch (err) {
     console.error("refresh token error:", err);
@@ -70,4 +71,24 @@ const refreshToken = async (req, res, next) => {
   }
 };
 
-export { registerUser, login, refreshToken };
+const logout = async (req, res, next) => {
+  try {
+    const result = await logoutUser(req.body.refreshToken)
+
+    if (!result.success) {
+      return errorResponse (
+        res,
+        result.message,
+        result.error,
+        result.statusCode
+      )
+    }
+
+    return successResponse (res, result.message)
+  } catch (err) {
+    console.error("logout error:", err);
+    next(err);
+  }
+}
+
+export { registerUser, login, refreshToken, logout };
