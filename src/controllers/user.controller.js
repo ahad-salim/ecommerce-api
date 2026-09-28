@@ -9,6 +9,7 @@ const getCurrentUser = async (req, res, next) => {
       return errorResponse(res, "User not found", [], 404);
     }
 
+     console.log(user);
     return res.status(200).json({
       success: true,
       data: {
@@ -20,6 +21,7 @@ const getCurrentUser = async (req, res, next) => {
       },
     });
   } catch (error) {
+    console.error("Get user error:", err);
     next(error);
   }
 };
