@@ -6,6 +6,7 @@ import {
   generateRefreshToken,
   hashRefreshToken,
 } from "../utils/jwt.js";
+import AppError from "../utils/AppError.js";
 
 async function checkIfUserExist(email) {
   const user = await User.findOne({ email });
@@ -17,11 +18,12 @@ async function registerNewUser({ name, email, password }) {
   const exist = await checkIfUserExist(email);
 
   if (exist) {
-    return {
-      success: false,
-      message: "User already exists",
-      error: ["USER_ALREADY_EXIST"],
-    };
+    throw new AppError("User already exists", 409, "USER_ALREADY_EXIST")
+    // return {
+    //   success: false,
+    //   message: "User already exists",
+    //   error: ["USER_ALREADY_EXIST"],
+    // };
   }
 
   // const hashedPassword = await bcrypt.hash(password, 12);
@@ -33,13 +35,10 @@ async function registerNewUser({ name, email, password }) {
   });
 
   return {
-    success: true,
-    data: {
       id: newUser._id,
       name: newUser.name,
       email: newUser.email,
       role: newUser.role,
-    },
   };
 }
 
@@ -47,26 +46,29 @@ async function loginUser({ email, password }) {
   const user = await User.findOne({ email }).select("+password");
 
   if (!user) {
-    return {
-      success: false,
-      statusCode: 401,
-      message: "Invalid email or password",
-      error: ["INVALID_CREDENTIALS"],
-    };
+    throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS")
+    // return {
+    //   success: false,
+    //   statusCode: 401,
+    //   message: "Invalid email or password",
+    //   error: ["INVALID_CREDENTIALS"],
+    // };
   }
 
   const passwordMatch = await comparePassword(password, user.password);
 
   if (!passwordMatch) {
-    return {
-      success: false,
-      statusCode: 401,
-      message: "Invalid email or password",
-      error: ["INVALID_CREDENTIALS"],
-    };
+   throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS")
+    // return {
+    //   success: false,
+    //   statusCode: 401,
+    //   message: "Invalid email or password",
+    //   error: ["INVALID_CREDENTIALS"],
+    // }
   }
 
   // if (!user.isVerified) {
+  //throw new AppError("Please verify your email before logging in", 403, "INVALID_EMAIL")
   //   return {
   //     success: false,
   //     statusCode: 403,
@@ -93,8 +95,6 @@ async function loginUser({ email, password }) {
   });
 
   return {
-    success: true,
-    data: {
       accessToken,
       refreshToken,
       user: {
@@ -104,18 +104,18 @@ async function loginUser({ email, password }) {
         role: user.role,
         isVerified: user.isVerified,
       },
-    },
   };
 }
 
 async function refreshUserToken(refreshToken) {
   if (!refreshToken) {
-    return {
-      success: false,
-      statusCode: 401,
-      message: "Refresh token is required",
-      error: ["REFRESH_TOKEN_REQUIRED"],
-    };
+    throw new AppError("Refresh token is required", 401, "REFRESH_TOKEN_REQUIRED")
+    // return {
+    //   success: false,
+    //   statusCode: 401,
+    //   message: "Refresh token is required",
+    //   error: ["REFRESH_TOKEN_REQUIRED"],
+    // };
   }
 
   const tokenHash = hashRefreshToken(refreshToken);
@@ -125,41 +125,52 @@ async function refreshUserToken(refreshToken) {
   );
 
   if (!storedToken) {
-    return {
-      success: false,
-      statusCode: 401,
-      message: "Invalid refresh token",
-      error: ["INVALID_REFRESH_TOKEN"],
-    };
+    throw new AppError("Invalid refresh token", 401, "INVALID_REFRESH_TOKEN")
+    // return {
+    //   success: false,
+    //   statusCode: 401,
+    //   message: "Invalid refresh token",
+    //   error: ["INVALID_REFRESH_TOKEN"],
+    // };
   }
 
   if (storedToken.revokedAt) {
-    return {
-      success: false,
-      statusCode: 401,
-      message: "This refresh token has been revoked",
-      error: ["REFRESH_TOKEN_REVOKED"],
-    };
+    const userId = storedToken.user?._id;
+    if (userId) {
+      await RefreshToken.updateMany(
+        { user: userId, revokedAt: null },
+        { revokedAt: new Date() },
+      );
+    }
+    throw new AppError("This refresh token has been revoked", 401, "REFRESH_TOKEN_REVOKED")
+    // return {
+      // success: false,
+      // statusCode: 401,
+      // message: "This refresh token has been revoked",
+      // error: ["REFRESH_TOKEN_REVOKED"],
+    // };
   }
 
   if (storedToken.expiresAt <= new Date()) {
-    return {
-      success: false,
-      statusCode: 401,
-      message: "This refresh token has expired",
-      error: ["REFRESH_TOKEN_EXPIRED"],
-    };
+    throw new AppError("This token has expired", 401, "REFRESH_TOKEN_EXPIRED")
+    // return {
+    //   success: false,
+    //   statusCode: 401,
+    //   message: "This refresh token has expired",
+    //   error: ["REFRESH_TOKEN_EXPIRED"],
+    // };
   }
 
   const user = storedToken.user;
 
   if (!user) {
-    return {
-      success: false,
-      statusCode: 401,
-      message: "User no longer exist",
-      error: ["USER_NO_LONGER EXIST"],
-    };
+    throw new AppError("User no longer exist", 401, "USER_NO_LONGER_EXIST")
+    // return {
+    //   success: false,
+    //   statusCode: 401,
+    //   message: "User no longer exist",
+    //   error: ["USER_NO_LONGER_EXIST"],
+    // };
   }
 
   storedToken.revokedAt = new Date();
@@ -184,44 +195,37 @@ async function refreshUserToken(refreshToken) {
   });
 
   return {
-    success: true,
-    data: {
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,
-    },
   };
 }
 
 async function logoutUser(refreshToken) {
   if (!refreshToken) {
-    return {
-      success: false,
-      statusCode: 401,
-      message: "Refresh token is required",
-      error: ["REFRESH_TOKEN_REQUIRED"],
-    };
+    throw new AppError("Refresh token is required", 401, "REFRESH_TOKEN_REQUIRED")
+    // return {
+    //   success: false,
+    //   statusCode: 401,
+    //   message: "Refresh token is required",
+    //   error: ["REFRESH_TOKEN_REQUIRED"],
+    // };
   }
 
   const tokenHash = hashRefreshToken(refreshToken);
 
   const storedToken = await RefreshToken.findOne({ tokenHash });
 
-  if (!storedToken) {
-    return {
-      success: true,
-      statusCode: 200,
-      message: "Logout successful",
-    };
-  }
+  if (!storedToken)
+    return;
 
   storedToken.revokedAt = new Date();
 
   await storedToken.save();
 
-  return {
-    success: true,
-    message: "Logout successful",
-  };
+  // return {
+  //   success: true,
+  //   message: "Logout successful",
+  // };
 }
 
 export {

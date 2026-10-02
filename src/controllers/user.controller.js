@@ -1,25 +1,11 @@
 import User from "../models/userModel.js";
-import { errorResponse } from "../utils/responseFormatter.js";
+import { getUserById } from "../services/user.service.js";
+import { errorResponse, successResponse } from "../utils/responseFormatter.js";
 
 const getCurrentUser = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
-
-    if (!user) {
-      return errorResponse(res, "User not found", ["USER_NOT_FOUND"], 404);
-    }
-
-     console.log(user);
-    return res.status(200).json({
-      success: true,
-      data: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        isVerified: user.isVerified,
-      },
-    });
+    const user = await getUserById(req.user.id)
+    return successResponse(res, "User fetch successfully", user, 200)
   } catch (error) {
     console.error("Get user error:", error);
     next(error);
