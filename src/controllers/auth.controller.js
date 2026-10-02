@@ -4,22 +4,17 @@ import {
   refreshUserToken,
   registerNewUser,
 } from "../services/auth.service.js";
-import { errorResponse, successResponse } from "../utils/responseFormatter.js";
+import { successResponse } from "../utils/responseFormatter.js";
 
 const registerUser = async (req, res, next) => {
   try {
     const result = await registerNewUser(req.body);
 
-    if (!result.success) {
-      return errorResponse(res, result.message, result.error, 409);
-    }
+    // if (!result.success) {
+    //   return errorResponse(res, result.message, result.error, 409);
+    // }
     console.log(result);
-    return successResponse(
-      res,
-      "Account Created Successfully",
-      result.data,
-      201,
-    );
+    return successResponse(res, "Account Created Successfully", result, 201);
   } catch (err) {
     console.error("register error:", err);
     next(err);
@@ -30,16 +25,16 @@ const login = async (req, res, next) => {
   try {
     const result = await loginUser(req.body);
 
-    if (!result.success) {
-      return errorResponse(
-        res,
-        result.message,
-        result.error,
-        result.statusCode,
-      );
-    }
+    // if (!result.success) {
+    //   return errorResponse(
+    //     res,
+    //     result.message,
+    //     result.error,
+    //     result.statusCode,
+    //   );
+    // }
 
-    res.cookie("refreshToken", result.data.refreshToken, {
+    res.cookie("refreshToken", result.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
@@ -50,7 +45,7 @@ const login = async (req, res, next) => {
     return successResponse(
       res,
       "Login Successful",
-      { accessToken: result.data.accessToken, user: result.data.user },
+      { accessToken: result.accessToken, user: result.user },
       200,
     );
   } catch (err) {
@@ -63,21 +58,21 @@ const refreshToken = async (req, res, next) => {
   try {
     const result = await refreshUserToken(req.cookies.refreshToken);
 
-    if (!result.success) {
-      res.clearCookie("refreshToken", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-      });
-      return errorResponse(
-        res,
-        result.message,
-        result.error,
-        result.statusCode,
-      );
-    }
+    // if (!result.success) {
+    //   res.clearCookie("refreshToken", {
+    //     httpOnly: true,
+    //     secure: process.env.NODE_ENV === "production",
+    //     sameSite: "strict",
+    //   });
+    //   return errorResponse(
+    //     res,
+    //     result.message,
+    //     result.error,
+    //     result.statusCode,
+    //   );
+    // }
 
-    res.cookie("refreshToken", result.data.refreshToken, {
+    res.cookie("refreshToken", result.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
@@ -86,31 +81,37 @@ const refreshToken = async (req, res, next) => {
 
     console.log(result);
     return successResponse(res, "Token refreshed successfully", {
-      accessToken: result.data.accessToken,
+      accessToken: result.accessToken,
     });
   } catch (err) {
     console.error("refresh token error:", err);
+    if (err.isOperational)
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+      });
     next(err);
   }
 };
 
 const logout = async (req, res, next) => {
   try {
-    const result = await logoutUser(req.cookies.refreshToken);
+     await logoutUser(req.cookies.refreshToken);
 
-    if (!result.success) {
-      res.clearCookie("refreshToken", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-      });
-      return errorResponse(
-        res,
-        result.message,
-        result.error,
-        result.statusCode,
-      );
-    }
+    // if (!result.success) {
+    //   res.clearCookie("refreshToken", {
+    //     httpOnly: true,
+    //     secure: process.env.NODE_ENV === "production",
+    //     sameSite: "strict",
+    //   });
+    //   return errorResponse(
+    //     res,
+    //     result.message,
+    //     result.error,
+    //     result.statusCode,
+    //   );
+    // }
 
     res.clearCookie("refreshToken", {
       httpOnly: true,
@@ -118,9 +119,15 @@ const logout = async (req, res, next) => {
       sameSite: "strict",
     });
 
-    return successResponse(res, result.message);
+    return successResponse(res, "logout successfull",n);
   } catch (err) {
     console.error("logout error:", err);
+    if (err.isOperational)
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+      });
     next(err);
   }
 };
