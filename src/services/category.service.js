@@ -1,7 +1,7 @@
 import Category from "../models/categoryModel.js";
 import AppError from "../utils/AppError.js";
 
-const creatSlug = (name) => {
+const createSlug = (name) => {
   return name
     .toLowerCase()
     .trim()
@@ -36,7 +36,7 @@ const getCategories = async () => {
 };
 
 const updateCategory = async (id, { name }) => {
-  const slug = creatSlug(name);
+  const slug = createSlug(name);
 
   const existingCategory = await Category.findOne({
     $or: [{ name }, { slug }],
