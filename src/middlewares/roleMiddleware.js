@@ -1,4 +1,4 @@
-import { errorResponse } from "../utils/responseFormatter";
+import { errorResponse } from "../utils/responseFormatter.js";
 
 const authorize = (...allowedRoles) => {
   return (req, res, next) => {

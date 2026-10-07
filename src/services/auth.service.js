@@ -14,11 +14,17 @@ async function checkIfUserExist(email) {
   return !!user;
 }
 
-async function registerNewUser({ name, email, password }) {
+async function registerNewUser({
+  name,
+  email,
+  password,
+  role = "customer",
+  isVerified = "false",
+}) {
   const exist = await checkIfUserExist(email);
 
   if (exist) {
-    throw new AppError("User already exists", 409, "USER_ALREADY_EXIST")
+    throw new AppError("User already exists", 409, "USER_ALREADY_EXIST");
     // return {
     //   success: false,
     //   message: "User already exists",
@@ -32,13 +38,15 @@ async function registerNewUser({ name, email, password }) {
     name,
     email,
     password: await hashPassword(password),
+    role,
+    isVerified,
   });
 
   return {
-      id: newUser._id,
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role,
+    id: newUser._id,
+    name: newUser.name,
+    email: newUser.email,
+    role: newUser.role,
   };
 }
 
@@ -46,7 +54,7 @@ async function loginUser({ email, password }) {
   const user = await User.findOne({ email }).select("+password");
 
   if (!user) {
-    throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS")
+    throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
     // return {
     //   success: false,
     //   statusCode: 401,
@@ -58,7 +66,7 @@ async function loginUser({ email, password }) {
   const passwordMatch = await comparePassword(password, user.password);
 
   if (!passwordMatch) {
-   throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS")
+    throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
     // return {
     //   success: false,
     //   statusCode: 401,
@@ -95,21 +103,25 @@ async function loginUser({ email, password }) {
   });
 
   return {
-      accessToken,
-      refreshToken,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        isVerified: user.isVerified,
-      },
+    accessToken,
+    refreshToken,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isVerified: user.isVerified,
+    },
   };
 }
 
 async function refreshUserToken(refreshToken) {
   if (!refreshToken) {
-    throw new AppError("Refresh token is required", 401, "REFRESH_TOKEN_REQUIRED")
+    throw new AppError(
+      "Refresh token is required",
+      401,
+      "REFRESH_TOKEN_REQUIRED",
+    );
     // return {
     //   success: false,
     //   statusCode: 401,
@@ -125,7 +137,7 @@ async function refreshUserToken(refreshToken) {
   );
 
   if (!storedToken) {
-    throw new AppError("Invalid refresh token", 401, "INVALID_REFRESH_TOKEN")
+    throw new AppError("Invalid refresh token", 401, "INVALID_REFRESH_TOKEN");
     // return {
     //   success: false,
     //   statusCode: 401,
@@ -142,17 +154,21 @@ async function refreshUserToken(refreshToken) {
         { revokedAt: new Date() },
       );
     }
-    throw new AppError("This refresh token has been revoked", 401, "REFRESH_TOKEN_REVOKED")
+    throw new AppError(
+      "This refresh token has been revoked",
+      401,
+      "REFRESH_TOKEN_REVOKED",
+    );
     // return {
-      // success: false,
-      // statusCode: 401,
-      // message: "This refresh token has been revoked",
-      // error: ["REFRESH_TOKEN_REVOKED"],
+    // success: false,
+    // statusCode: 401,
+    // message: "This refresh token has been revoked",
+    // error: ["REFRESH_TOKEN_REVOKED"],
     // };
   }
 
   if (storedToken.expiresAt <= new Date()) {
-    throw new AppError("This token has expired", 401, "REFRESH_TOKEN_EXPIRED")
+    throw new AppError("This token has expired", 401, "REFRESH_TOKEN_EXPIRED");
     // return {
     //   success: false,
     //   statusCode: 401,
@@ -164,7 +180,7 @@ async function refreshUserToken(refreshToken) {
   const user = storedToken.user;
 
   if (!user) {
-    throw new AppError("User no longer exist", 401, "USER_NO_LONGER_EXIST")
+    throw new AppError("User no longer exist", 401, "USER_NO_LONGER_EXIST");
     // return {
     //   success: false,
     //   statusCode: 401,
@@ -195,14 +211,18 @@ async function refreshUserToken(refreshToken) {
   });
 
   return {
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
+    accessToken: newAccessToken,
+    refreshToken: newRefreshToken,
   };
 }
 
 async function logoutUser(refreshToken) {
   if (!refreshToken) {
-    throw new AppError("Refresh token is required", 401, "REFRESH_TOKEN_REQUIRED")
+    throw new AppError(
+      "Refresh token is required",
+      401,
+      "REFRESH_TOKEN_REQUIRED",
+    );
     // return {
     //   success: false,
     //   statusCode: 401,
@@ -215,8 +235,7 @@ async function logoutUser(refreshToken) {
 
   const storedToken = await RefreshToken.findOne({ tokenHash });
 
-  if (!storedToken)
-    return;
+  if (!storedToken) return;
 
   storedToken.revokedAt = new Date();
 
