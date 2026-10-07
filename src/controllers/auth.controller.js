@@ -97,7 +97,7 @@ const refreshToken = async (req, res, next) => {
 
 const logout = async (req, res, next) => {
   try {
-     await logoutUser(req.cookies.refreshToken);
+    await logoutUser(req.cookies.refreshToken);
 
     // if (!result.success) {
     //   res.clearCookie("refreshToken", {
@@ -119,7 +119,7 @@ const logout = async (req, res, next) => {
       sameSite: "strict",
     });
 
-    return successResponse(res, "logout successfull",n);
+    return successResponse(res, "logout successfull");
   } catch (err) {
     console.error("logout error:", err);
     if (err.isOperational)
@@ -132,4 +132,28 @@ const logout = async (req, res, next) => {
   }
 };
 
-export { registerUser, login, refreshToken, logout };
+const registerAdmin = async (req, res, next) => {
+  try {
+    const { name, email, password } = req.body;
+    const result = await registerNewUser({
+      name,
+      email,
+      password,
+      role: "admin",
+      isVerified: true,
+    });
+
+    console.log(result);
+    return successResponse(
+      res,
+      "Admin Account Created Successfully",
+      result,
+      201,
+    );
+  } catch (err) {
+    console.error("register admin error:", err);
+    next(err);
+  }
+};
+
+export { registerUser, login, refreshToken, logout, registerAdmin };
