@@ -17,7 +17,11 @@ const createCategory = async ({ name }) => {
   });
 
   if (existingCategory) {
-    throw new AppError("Category already exists", 409, CATEGORY_ALREADY_EXISTS);
+    throw new AppError(
+      "Category already exists",
+      409,
+      "CATEGORY_ALREADY_EXISTS",
+    );
   }
 
   const category = await Category.create({ name, slug });
@@ -36,6 +40,10 @@ const getCategories = async () => {
 };
 
 const updateCategory = async (id, { name }) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError("Invalid category ID", 400, "INVALID_ID");
+  }
+
   const slug = createSlug(name);
 
   const existingCategory = await Category.findOne({
@@ -44,7 +52,11 @@ const updateCategory = async (id, { name }) => {
   });
 
   if (existingCategory) {
-    throw new AppError("Category already exists", 409, CATEGORY_ALREADY_EXISTS);
+    throw new AppError(
+      "Category already exists",
+      409,
+      "CATEGORY_ALREADY_EXISTS",
+    );
   }
 
   const category = await Category.findByIdAndUpdate(
@@ -54,7 +66,7 @@ const updateCategory = async (id, { name }) => {
   );
 
   if (!category) {
-    throw new AppError("Category not found", 404, CATEGORY_NOT_FOUND);
+    throw new AppError("Category not found", 404, "CATEGORY_NOT_FOUND");
   }
 
   return {
@@ -63,10 +75,26 @@ const updateCategory = async (id, { name }) => {
 };
 
 const deleteCategory = async (id) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError("Invalid category ID", 400, "INVALID_ID");
+  }
+
+  const inUse = await productIdSchema.exixts({
+    category: id,
+    isDeleted: false,
+  });
+  if (inUse) {
+    throw new AppError(
+      "Category still has products, move or delete them first",
+      409,
+      "CATEGORY_IN_USE",
+    );
+  }
+
   const category = await Category.findByIdAndDelete(id);
 
   if (!category) {
-    throw new AppError("Category not found", 404, CATEGORY_NOT_FOUND);
+    throw new AppError("Category not found", 404, "CATEGORY_NOT_FOUND");
   }
 
   return {
@@ -74,5 +102,4 @@ const deleteCategory = async (id) => {
   };
 };
 
-
-export { createCategory, getCategories, updateCategory, deleteCategory }
+export { createCategory, getCategories, updateCategory, deleteCategory };

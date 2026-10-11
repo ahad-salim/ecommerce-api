@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 import User from "../models/userModel.js";
 import AppError from "../utils/AppError.js";
 import { hashPassword } from "../utils/password.js";
+import { registerSchema } from "../validators/auth.validator.js";
+
 
 const { DB_URI, ADMIN_NAME, ADMIN_EMAIL, ADMIN_PASSWORD } = process.env;
 
@@ -11,19 +13,24 @@ async function seedAdmin() {
     throw new AppError("Set DB_URL, ADMIN_EMAIL, ADMIN_PASSWORD in .env");
   }
 
+  const admin = registerSchema.parse({
+    name: ADMIN_NAME || "System Admin",
+    email: ADMIN_EMAIL,
+    password: ADMIN_PASSWORD
+  })
+
   await mongoose.connect(DB_URI);
 
   const existingAdmin = await User.findOne({ role: "admin" });
   if (existingAdmin) {
-    console.log("an admin already exist nothing to do");
-
+    console.log("An admin already exist, nothing to do");
     return;
   }
 
   await User.create({
-    name: ADMIN_NAME || "Admin",
-    email: ADMIN_EMAIL,
-    password: await hashPassword(ADMIN_PASSWORD),
+    name: admin.name,
+    email: admin.email,
+    password: await hashPassword(admin.password),
     role: "admin",
     isVerified: true,
   });

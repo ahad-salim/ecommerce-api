@@ -22,7 +22,7 @@ const getCategoriesController = async (req, res, next) => {
   try {
     const result = await getCategories();
 
-    return successResponse(res, "Category retrieved", result.data, 200);
+    return successResponse(res, "Category retrieved", result.data);
   } catch (error) {
     console.error("get category error:", error);
     next(error);

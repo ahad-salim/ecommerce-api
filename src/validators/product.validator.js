@@ -17,7 +17,7 @@ const createProductSchema = z.object({
     .int("Stock must be a whole number")
     .nonnegative("Stock cannot be negative"),
 
-  category: z.string().min(1, "Category is required"),
+  category: z.string().regex(/^[a-f\d]{24}$/i, "Invalid category ID"),
 });
 
 const updateProductSchema = z.object({
@@ -40,24 +40,35 @@ const updateProductSchema = z.object({
     .nonnegative("Stock cannot be negative")
     .optional(),
 
-  category: z.string().min(1, "Category cannot be empty").optional(),
+  category: z
+    .string()
+    .regex(/^[a-f\d]{24}$/i, "Invalid category ID")
+    .optional(),
 });
 
-const productQuerySchema = z.object({
-  search: z.string().trim().optional(),
+const productQuerySchema = z
+  .object({
+    search: z.string().trim().max(100).optional(),
 
-  category: z.string().optional(),
+    category: z.string().optional(),
 
-  minPrice: z.coerce.number().int().nonnegative().optional(),
+    minPrice: z.coerce.number().int().nonnegative().optional(),
 
-  maxPrice: z.coerce.number().int().nonnegative().optional(),
+    maxPrice: z.coerce.number().int().nonnegative().optional(),
 
-  sort: z.string().optional(),
+    sort: z.string().max(100).optional(),
 
-  page: z.coerce.number().int().positive().default(1),
+    page: z.coerce.number().int().positive().default(1),
 
-  limit: z.coerce.number().int().positive().max(100).default(10),
-});
+    limit: z.coerce.number().int().positive().max(100).default(10),
+  })
+  .refine(
+    (q) =>
+      q.minPrice === undefined ||
+      q.maxPrice === undefined ||
+      q.minPrice <= q.maxPrice,
+    { message: "minPrice cannot be greater than maxPrice", path: ["minPrice"] },
+  );
 
 const productIdSchema = z.object({
   id: z.string().min(1, "Product ID is required"),
