@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Product from "../models/productModel.js";
 import Category from "../models/categoryModel.js";
 import AppError from "../utils/AppError.js";
+import { escapeRegex } from "../utils/regex.js";
 
 const createSlug = (name) => {
   return name
@@ -11,23 +12,25 @@ const createSlug = (name) => {
     .replace(/[^a-z0-9]-/g, "");
 };
 
+const SORTABLE_FIELDS = new Set(["price", "name", "createdAt", "stock"]);
+
 const createProduct = async ({ name, price, stock, category }) => {
   if (!mongoose.Types.ObjectId.isValid(category)) {
-    throw new AppError("Invalid category ID", 400);
+    throw new AppError("Invalid category ID", 400, "INVALID_ID");
   }
 
-  const categoryExist = await Category.findById(category);
+  const categoryExist = await Category.exists({ _id: category });
 
   if (!categoryExist) {
-    throw new AppError("Category not found", 404);
+    throw new AppError("Category not found", 404, "CATEGORY_NOT_FOUND");
   }
 
   const slug = createSlug(name);
 
-  const existingProduct = await Product.findOne({ slug, isDeleted: false });
+  const existingProduct = await Product.exists({ slug });
 
   if (existingProduct) {
-    throw new AppError("Product already exists", 409, PRODUCT_EXIST);
+    throw new AppError("Product already exists", 409, "PRODUCT_EXIST");
   }
 
   const product = await Product.create({ name, slug, price, stock, category });
@@ -39,7 +42,7 @@ const createProduct = async ({ name, price, stock, category }) => {
 
 const getProduct = async (id) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new AppError("Invalid Product ID", 400);
+    throw new AppError("Invalid Product ID", 400, "INVALID_ID");
   }
 
   const product = await Product.findOne({ _id: id, isDeleted: false }).populate(
@@ -48,7 +51,7 @@ const getProduct = async (id) => {
   );
 
   if (!product) {
-    throw new AppError("Product not found", 404);
+    throw new AppError("Product not found", 404, "PRODUCT_NOT_FOUND");
   }
 
   return {
@@ -62,16 +65,17 @@ const getProducts = async (query) => {
   const filter = { isDeleted: false };
 
   if (search) {
+    const pattern = escapeRegex(search);
     filter.$or = [
       {
         name: {
-          $regex: search,
+          $regex: pattern,
           $options: "i",
         },
       },
       {
         slug: {
-          $regex: search,
+          $regex: pattern,
           $options: "i",
         },
       },
@@ -109,16 +113,19 @@ const getProducts = async (query) => {
   if (sort) {
     sortOption = {};
 
-    const sortFields = sort.split(",");
+    for (const raw of sort.split(",")) {
+      const descending = raw.startsWith("-");
+      const field = descending ? raw.slice(1) : raw;
 
-    for (const field of sortFields) {
-      if (field.startsWith("-")) {
-        sortOption[field.substring(1)] = -1;
-      } else {
-        sortOption[field] = 1;
+      if (!SORTABLE_FIELDS.has(field)) {
+        throw new AppError(`Cannot sort by "${field}"`, 400, "INVALID_SORT");
       }
+
+      sortOption[field] = descending ? -1 : 1;
     }
   }
+
+  sortOption._id = 1;
 
   const [products, total] = await Promise.all([
     Product.find(filter)
@@ -145,11 +152,7 @@ const getProducts = async (query) => {
 
 const updateProduct = async (id, updates) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return {
-      success: false,
-      statusCode: 400,
-      message: "Invalid product ID",
-    };
+    throw new AppError("Invalid product ID", 400, "INVALID_ID");
   }
 
   const product = await Product.findOne({
@@ -158,23 +161,31 @@ const updateProduct = async (id, updates) => {
   });
 
   if (!product) {
-    throw new AppError("Invalid Product ID", 400);
+    throw new AppError("Invalid Product ID", 400, "INVALID_ID");
   }
 
   if (updates.category) {
     if (!mongoose.Types.ObjectId.isValid(updates.category)) {
-      throw new AppError("Invalid category ID", 400);
+      throw new AppError("Invalid category ID", 400, "INVALID_ID");
     }
 
-    const categoryExists = await Category.findById(updates.category);
+    const categoryExists = await Category.exists({ _id: updates.category });
 
     if (!categoryExists) {
-      throw new AppError("Category not found", 400);
+      throw new AppError("Category not found", 400, "CATEGORY NOT FOUND");
     }
   }
 
   if (updates.name) {
     updates.slug = createSlug(updates.name);
+
+    const clash = await Product.exists({ slug, _id: { $ne: id } });
+
+    if (clash) {
+      throw new AppError("Product already exists", 409, "PRODUCT_EXISTS");
+    }
+
+    updates.slug = slug;
   }
 
   Object.assign(product, updates);
@@ -188,7 +199,7 @@ const updateProduct = async (id, updates) => {
 
 const softDeleteProduct = async (id) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new AppError("Invalid Product ID", 400);
+    throw new AppError("Invalid Product ID", 400, "INVALID_ID");
   }
 
   const product = await Product.findOneAndUpdate(
