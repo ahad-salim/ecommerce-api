@@ -1,4 +1,3 @@
-import { regex } from "zod";
 import {
   createProduct,
   getProduct,
@@ -44,7 +43,7 @@ const getProductController = async (req, res, next) => {
 
 const getProductsController = async (req, res, next) => {
   try {
-    const result = await getProducts(req.query);
+    const result = await getProducts(req.validateQuery);
 
     console.log(result);
     return successResponse(
