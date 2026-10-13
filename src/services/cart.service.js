@@ -30,15 +30,13 @@ const getCart = async (userId) => {
   //   throw new AppError("Invalid user ID", 400);
   // }
 
-  const cart = getOrCreateCart(userId);
+  const cart = await getOrCreateCart(userId);
 
   const items = await CartItem.find({ cart: cart._id }).populate({
     path: "product",
     select: "name slug price stock image category isDeleted",
     populate: { path: "category", select: "name slug" },
   });
-console.log("cart", await cart._id.toString(), "| items found:", items.length)
-items.forEach((i) => console.log(" item", i._id.toString(), "| product:", i.product?.name ?? i.product, "| is Deleted:", i.product?.isDeleted))
   
  const activeItems = items.filter(
     (item) => item.product && !item.product.isDeleted,
@@ -121,18 +119,18 @@ const updateCartItem = async (userId, productId, quantity) => {
 };
 
 const removeCartItem = async (userId, productId) => {
-  if (!isValidObjectId(productId)) {
-    throw new AppError("Invalid product ID", 400, "INVALID_ID");
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    throw new AppError("Invalid Product ID", 400, "INVALID_ID");
   }
 
   const cart = await getOrCreateCart(userId);
 
   const result = await CartItem.deleteOne({
     cart: cart._id,
-    product: productId,
+    product: productId, 
   });
 
-  if (!result.deletedCount) {
+  if (!result.deletedCount === 0) {
     throw new AppError("Item not found in cart", 404, "CART_ITEM_NOT_FOUND");
   }
 

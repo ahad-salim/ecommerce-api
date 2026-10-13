@@ -31,7 +31,7 @@ router.patch(
   updateCartItemController,
 );
 
-router.delete("/items/:itemId", authenticate, removeCartItemController);
+router.delete("/items/:productId", authenticate, removeCartItemController);
 
 router.delete("/", authenticate, clearCartController);
 

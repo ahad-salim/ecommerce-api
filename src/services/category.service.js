@@ -1,4 +1,6 @@
+import mongoose from "mongoose";
 import Category from "../models/categoryModel.js";
+import Product from "../models/productModel.js";
 import AppError from "../utils/AppError.js";
 
 const createSlug = (name) => {
@@ -79,7 +81,7 @@ const deleteCategory = async (id) => {
     throw new AppError("Invalid category ID", 400, "INVALID_ID");
   }
 
-  const inUse = await productIdSchema.exixts({
+  const inUse = await Product.exists({
     category: id,
     isDeleted: false,
   });

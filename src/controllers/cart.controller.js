@@ -21,8 +21,8 @@ const getCartController = async (req, res, next) => {
 
 const addCartItemController = async (req, res, next) => {
   try {
-    const { productId, quantity } = req.body;
-    const result = await addCartItem(req.user.id, { productId, quantity });
+    // const { productId, quantity } = req.body;
+    const result = await addCartItem(req.user.id, req.body);
 
     return successResponse(res, "Item added to cart", result.data, 201);
   } catch (error) {
