@@ -19,8 +19,14 @@ router.post("/login", validate(loginSchema), login);
 
 router.post("/refresh", refreshToken);
 
-router.post("/logout", logout)
+router.post("/logout", logout);
 
-router.post("/register-admin", authenticate, authorize("admin"), registerAdmin)
+router.post(
+  "/register-admin",
+  authenticate,
+  authorize("admin"),
+  validate(registerSchema),
+  registerAdmin,
+);
 
 export default router;

@@ -115,6 +115,13 @@ async function loginUser({ email, password }) {
   };
 }
 
+async function revokeAllUserTokens(userId) {
+  await RefreshToken.updateMany(
+    { user: userId, revokedAt: null },
+    { revokedAt: new Date() },
+  );
+}
+
 async function refreshUserToken(refreshToken) {
   if (!refreshToken) {
     throw new AppError(
@@ -147,12 +154,8 @@ async function refreshUserToken(refreshToken) {
   }
 
   if (storedToken.revokedAt) {
-    const userId = storedToken.user?._id;
-    if (userId) {
-      await RefreshToken.updateMany(
-        { user: userId, revokedAt: null },
-        { revokedAt: new Date() },
-      );
+    if (storedToken.user?._id) {
+      await revokeAllUserTokens(storedToken.user._id);
     }
     throw new AppError(
       "This refresh token has been revoked",
@@ -189,8 +192,20 @@ async function refreshUserToken(refreshToken) {
     // };
   }
 
-  storedToken.revokedAt = new Date();
-  await storedToken.save();
+  const claimed = await RefreshToken.findByIdAndUpdate(
+    { _id: storedToken._id, revokedAt: null },
+    { revokedAt: new Date() },
+  );
+
+  if (!claimed) {
+    await revokeAllUserTokens(user._id);
+
+    throw new AppError(
+      "This refresh token has been revoked",
+      401,
+      "REFRESH_TOKEN_REVOKED",
+    );
+  }
 
   const newAccessToken = generateAccessToken(user);
 
