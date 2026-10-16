@@ -2,14 +2,7 @@ import mongoose from "mongoose";
 import Category from "../models/categoryModel.js";
 import Product from "../models/productModel.js";
 import AppError from "../utils/AppError.js";
-
-const createSlug = (name) => {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "");
-};
+import { createSlug } from "../utils/slug.js";
 
 const createCategory = async ({ name }) => {
   const slug = createSlug(name);

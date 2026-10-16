@@ -3,14 +3,7 @@ import Product from "../models/productModel.js";
 import Category from "../models/categoryModel.js";
 import AppError from "../utils/AppError.js";
 import { escapeRegex } from "../utils/regex.js";
-
-const createSlug = (name) => {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9]-/g, "");
-};
+import { createSlug } from "../utils/slug.js";
 
 const SORTABLE_FIELDS = new Set(["price", "name", "createdAt", "stock"]);
 
@@ -179,13 +172,14 @@ const updateProduct = async (id, updates) => {
   if (updates.name) {
     updates.slug = createSlug(updates.name);
 
-    const clash = await Product.exists({ slug, _id: { $ne: id } });
+    const clash = await Product.exists({
+      slug: updates.slug,
+      _id: { $ne: id },
+    });
 
     if (clash) {
       throw new AppError("Product already exists", 409, "PRODUCT_EXISTS");
     }
-
-    updates.slug = slug;
   }
 
   Object.assign(product, updates);
