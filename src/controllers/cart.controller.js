@@ -35,7 +35,7 @@ const updateCartItemController = async (req, res, next) => {
   try {
     const result = await updateCartItem(
       req.user.id,
-      req.params.itemId,
+      req.params.productId,
       req.body.quantity,
     );
 

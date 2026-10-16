@@ -25,7 +25,7 @@ router.post(
 );
 
 router.patch(
-  "/items/:itemId",
+  "/items/:productId",
   authenticate,
   validate(updateCartItemSchema),
   updateCartItemController,
