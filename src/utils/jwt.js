@@ -9,13 +9,16 @@ const generateAccessToken = (user) => {
     },
     process.env.JWT_ACCESS_SECRET,
     {
+      algorithm: "HS256",
       expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || "15m",
     },
   );
 };
 
 const verifyAccessToken = (token) => {
-  return jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+  return jwt.verify(token, process.env.JWT_ACCESS_SECRET, {
+    algorithms: ["HS256"],
+  });
 };
 
 const generateRefreshToken = () => {
