@@ -1,6 +1,12 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 
+const ACCESS_ALGORITHM = "HS256";
+
+const REFRESH_TOKEN_DAYS = Number(process.env.REFRESH_TOKEN_EXPIRES_DAYS || 7);
+const refreshTokenMaxAgeMs = () => REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000;
+const refreshTokenExpiryDate = () => new Date(Date.now() + refreshTokenMaxAgeMs());
+
 const generateAccessToken = (user) => {
   return jwt.sign(
     {
@@ -9,7 +15,7 @@ const generateAccessToken = (user) => {
     },
     process.env.JWT_ACCESS_SECRET,
     {
-      algorithm: "HS256",
+      algorithm: ACCESS_ALGORITHM,
       expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || "15m",
     },
   );
@@ -17,7 +23,7 @@ const generateAccessToken = (user) => {
 
 const verifyAccessToken = (token) => {
   return jwt.verify(token, process.env.JWT_ACCESS_SECRET, {
-    algorithms: ["HS256"],
+    algorithms: [ACCESS_ALGORITHM],
   });
 };
 
@@ -34,4 +40,6 @@ export {
   verifyAccessToken,
   generateRefreshToken,
   hashRefreshToken,
+  refreshTokenMaxAgeMs,
+  refreshTokenExpiryDate,
 };
