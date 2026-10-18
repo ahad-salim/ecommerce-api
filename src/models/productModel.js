@@ -18,6 +18,10 @@ const productSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 0,
+      validate: {
+        validator: Number.isInteger,
+        message: "Price must be a whole number",
+      },
     },
     stock: {
       type: Number,
@@ -47,5 +51,8 @@ const productSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
+
+productSchema.index({ isDeleted: 1, category: 1, price: 1 });
+productSchema.index({ name: 1 });
 
 export default mongoose.model("Product", productSchema);

@@ -3,6 +3,7 @@ import {
   getPaymentStatus,
   processWebhook,
 } from "../services/payment.service.js";
+import { refundOrder } from "../services/refund.service.js";
 
 import { successResponse } from "../utils/responseFormatter.js";
 
@@ -23,8 +24,6 @@ const checkoutController = async (req, res, next) => {
 
 const webhookController = async (req, res, next) => {
   try {
-    // Campay's callback fields may arrive in the query string or the body:
-    // read both until a demo payment shows which one it really uses.
     const params = { ...req.body, ...req.query };
 
     const result = await processWebhook(params);
@@ -45,4 +44,18 @@ const getPaymentStatusController = async (req, res, next) => {
   }
 };
 
-export { checkoutController, webhookController, getPaymentStatusController };
+const refundController = async (req, res, next) => {
+  try {
+    const result = await refundOrder(req.params.orderId);
+
+    return successResponse(
+      res,
+      "Order marked as refunded. Send the money back from your Campay dashboard",
+      result.data,
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+export { checkoutController, webhookController, getPaymentStatusController, refundController };
