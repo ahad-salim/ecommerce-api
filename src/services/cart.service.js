@@ -130,7 +130,7 @@ const removeCartItem = async (userId, productId) => {
     product: productId, 
   });
 
-  if (!result.deletedCount === 0) {
+  if (result.deletedCount === 0) {
     throw new AppError("Item not found in cart", 404, "CART_ITEM_NOT_FOUND");
   }
 

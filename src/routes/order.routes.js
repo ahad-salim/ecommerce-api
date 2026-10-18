@@ -19,31 +19,14 @@ import {
 
 const router = express.Router();
 
-router.post(
-  "/",
-  authenticate,
-  validate(createOrderSchema),
-  createOrderController,
-);
+router.use(authenticate);
 
-router.get(
-  "/",
-  authenticate,
-  validateQuery(orderQuerySchema),
-  getMyOrdersController,
-);
+router.post("/", validate(createOrderSchema), createOrderController);
 
-router.get(
-  "/:id",
-  authenticate,
-  authorize("customer", "admin"),
-  getOrderController,
-);
+router.get("/", validateQuery(orderQuerySchema), getMyOrdersController);
 
-router.patch(
-  "/:id/cancel",
-  authenticate,
-  cancelOrderController,
-);
+router.get("/:id", getOrderController);
+
+router.patch("/:id/cancel", cancelOrderController);
 
 export default router;

@@ -109,13 +109,8 @@ const createCheckout = async (orderId, userId) => {
   return { data: toSession(payment), created: true };
 };
 
-/* ------------------------------------------------------------------ *
- *  POST /payments/webhook
- * ------------------------------------------------------------------ */
 
-// pending -> newStatus, atomically. Returns the updated payment, or null if it
-// was no longer pending (already processed). The unique index on providerRef
-// also stops one real Campay transaction from being used to "pay" two payments.
+
 async function claimPayment(paymentId, status, fields) {
   try {
     return await Payment.findOneAndUpdate(
@@ -135,9 +130,6 @@ async function claimPayment(paymentId, status, fields) {
   }
 }
 
-// Order pending -> paid, then clear the cart. Every step is conditional or
-// idempotent, so it is safe to run again on a duplicate webhook. That also
-// repairs the case where the server died between "payment saved" and "order saved".
 async function finalizePaidOrder(payment) {
   const moved = await Order.findOneAndUpdate(
     { _id: payment.order, status: "pending" },
@@ -148,8 +140,6 @@ async function finalizePaidOrder(payment) {
   if (!moved) {
     const current = await Order.findById(payment.order).select("status").lean();
 
-    // Money was taken but the order was cancelled/expired/failed in the meantime.
-    // Never silently swallow this: it needs a manual refund.
     if (!current || ["cancelled", "failed"].includes(current.status)) {
       console.error("PAYMENT_ORPHANED", {
         payment: String(payment._id),
@@ -171,7 +161,6 @@ const processWebhook = async (params) => {
     external_reference: externalReference,
   } = params;
 
-  // 1. Who sent this? (proves the sender, NOT that the other fields are untampered)
   if (!verifyWebhookSignature(signature)) {
     throw new AppError("Invalid webhook signature", 401, "INVALID_SIGNATURE");
   }
@@ -186,7 +175,6 @@ const processWebhook = async (params) => {
     throw new AppError("Payment not found", 404, "PAYMENT_NOT_FOUND");
   }
 
-  // 2. What really happened? Ask Campay directly instead of believing the query string.
   const tx = await getTransactionStatus(reference);
   const txStatus = String(tx?.status ?? "").toUpperCase();
 
@@ -198,7 +186,6 @@ const processWebhook = async (params) => {
     (payment.providerRef && payment.providerRef !== reference);
 
   if (mismatch) {
-    // IDs only: never log the signature or the full payload
     console.error("PAYMENT_MISMATCH", {
       payment: String(payment._id),
       reference,
@@ -206,7 +193,6 @@ const processWebhook = async (params) => {
     throw new AppError("Payment details do not match", 400, "PAYMENT_MISMATCH");
   }
 
-  // 3. Apply it. Every transition is claimed atomically => idempotent (rule 6).
   if (txStatus === "SUCCESSFUL") {
     const claimed = await claimPayment(payment._id, "succeeded", {
       providerRef: reference,
@@ -229,8 +215,7 @@ const processWebhook = async (params) => {
 
     const current = claimed ?? (await Payment.findById(payment._id));
 
-    // pending -> failed on the order AND give the reserved stock back.
-    // Returns null (does nothing) if the order already left pending.
+   
     if (current.status === "failed") {
       await moveOutOfPending({ _id: payment.order }, "failed");
     }
@@ -238,13 +223,8 @@ const processWebhook = async (params) => {
     return { processed: Boolean(claimed) };
   }
 
-  // PENDING or anything unknown: nothing to do yet
   return { processed: false };
 };
-
-/* ------------------------------------------------------------------ *
- *  GET /payments/:orderId
- * ------------------------------------------------------------------ */
 
 const getPaymentStatus = async (orderId, requester) => {
   if (!isObjectId(orderId)) {
@@ -254,7 +234,6 @@ const getPaymentStatus = async (orderId, requester) => {
   const filter = { order: orderId };
   if (requester.role !== "admin") filter.user = requester.id;
 
-  // An order can have several attempts (failed ones stay); show the latest
   const payment = await Payment.findOne(filter)
     .sort({ createdAt: -1 })
     .select("-__v")
