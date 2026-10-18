@@ -11,6 +11,7 @@ import cartRoutes from "./routes/cart.routes.js"
 import orderRoutes from "./routes/order.routes.js"
 import paymentRoutes from "./routes/payment.routes.js"
 import adminOrderRoutes from "./routes/adminOrder.routes.js"
+import reviewRoutes from "./routes/review.routes.js"
 
 const app = express();
 
@@ -23,6 +24,8 @@ app.use("/api/v1/auth", authRoutes)
 app.use("/api/v1/users", userRoutes)
 
 app.use("/api/v1/categories", categoryRoutes)
+
+app.use("/api/v1/products/:id/reviews", reviewRoutes)
 
 app.use("/api/v1/products", productRoutes)
 
