@@ -18,6 +18,11 @@ import {
   updateProductController,
   deleteProductController,
 } from "../controllers/product.controller.js";
+import {
+  uploadProductImage,
+  verifyImageSignature,
+} from "../middlewares/upload.middleware.js";
+import { uploadProductImageController } from "../controllers/productImage.controller.js";
 
 const router = express.Router();
 
@@ -39,6 +44,15 @@ router.patch(
   authorize("admin"),
   validate(updateProductSchema),
   updateProductController,
+);
+
+router.patch(
+  "/:id/image",
+  authenticate,
+  authorize(admin),
+  uploadProductImage,
+  verifyImageSignature,
+  uploadProductImageController,
 );
 
 router.delete(
