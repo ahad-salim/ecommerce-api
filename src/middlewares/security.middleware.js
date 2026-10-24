@@ -1,12 +1,6 @@
 import rateLimit from "express-rate-limit";
 import { errorResponse } from "../utils/responseFormatter.js";
 
-/* ------------------------------------------------------------------ *
- *  NoSQL injection: strip Mongo operators from body and params
- * ------------------------------------------------------------------ */
-
-// Mutates in place (Express 5 does not let you REPLACE req.query, so we only
-// touch body and params here and reject bad query keys separately below).
 const stripOperators = (value) => {
   if (Array.isArray(value)) {
     value.forEach(stripOperators);
@@ -37,9 +31,6 @@ export const sanitizeInput = (req, res, next) => {
   next();
 };
 
-/* ------------------------------------------------------------------ *
- *  HTTP parameter pollution: ?sort=a&sort=b becomes an array
- * ------------------------------------------------------------------ */
 
 export const rejectParameterPollution = (req, res, next) => {
   for (const value of Object.values(req.query)) {
@@ -56,9 +47,6 @@ export const rejectParameterPollution = (req, res, next) => {
   next();
 };
 
-/* ------------------------------------------------------------------ *
- *  HTTPS only in production (needs `app.set("trust proxy", 1)`)
- * ------------------------------------------------------------------ */
 
 export const httpsOnly = (req, res, next) => {
   if (process.env.NODE_ENV !== "production") return next();
@@ -76,9 +64,6 @@ export const httpsOnly = (req, res, next) => {
   next();
 };
 
-/* ------------------------------------------------------------------ *
- *  Rate limiters (off while running tests)
- * ------------------------------------------------------------------ */
 
 const limiter = ({ windowMs, limit, message, skip }) =>
   rateLimit({
