@@ -1,7 +1,15 @@
 import { errorResponse } from "../utils/responseFormatter.js";
 
 export default function errorHandler(err, req, res, next) {
-  const statusCode = err.statusCode || 500;
+  const statusCode = err.statusCode || err.ststus || 500;
+
+  if (err.type === "entity.parse.failed") {
+    return errorResponse(res, "Malformed JSON body", ["INVALID_JSON"], 400);
+  }
+
+  if (err.type === "entity.too.large") {
+    return errorResponse(res, "Request body is too large", ["PAYLOAD_TOO_LARGE"], 413);
+  }
 
   if (err.code === 11000) {
     const field = Object.keys(err.keyPattern || {})[0];
@@ -32,7 +40,7 @@ export default function errorHandler(err, req, res, next) {
 
   if (statusCode >= 500) {
     console.error(err.stack);
-    return errorResponse(res, "Internal server error", ["SEVER_ERROR"], 500);
+    return errorResponse(res, statusCode === 500 ? "Internal server error" : "Service temporarily unavailable", ["SEVER_ERROR"], statusCode);
   }
   return errorResponse(res, err.message, err.errors || [], statusCode);
 }
