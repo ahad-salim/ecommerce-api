@@ -13,6 +13,7 @@ import {
   sendPasswordResetEmail,
   sendVerificationEmail,
 } from "./email.service.js";
+import crypto from "crypto"
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_MINUTES = 15;
