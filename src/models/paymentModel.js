@@ -13,7 +13,7 @@ const paymentSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    provider: { type: String, default: "campay" },
+    provider: { type: String },
     amount: {
       type: Number,
       required: true,

@@ -21,7 +21,7 @@ const orderItemSchema = new mongoose.Schema({
     required: true,
     min: 0,
     validate: {
-      validator: Number.isInteger, message: "quantity must be a whole number"
+      validator: Number.isInteger, message: "price must be a whole number"
     }
   },
   quantity: {
