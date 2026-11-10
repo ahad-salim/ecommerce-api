@@ -84,6 +84,12 @@ export const apiLimiter = limiter({
   skip: (req) => req.originalUrl.startsWith("/api/v1/payments/webhook"),
 });
 
+export const webhookLimiter = limiter({
+  windowMs: 60 * 1000,
+  limit: 120,
+  message: "Too many webhook requests",
+});
+
 // login, register, refresh: slows down password guessing
 export const authLimiter = limiter({
   windowMs: 15 * 60 * 1000,

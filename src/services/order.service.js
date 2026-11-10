@@ -7,6 +7,7 @@ import Product from "../models/productModel.js";
 import AppError from "../utils/AppError.js";
 import { canTransition } from "../utils/orderStatus.js";
 
+
 const PENDING_TTL_MS = 30 * 60 * 1000; // brief: pending orders die after 30 minutes
 
 async function reserveStock(lines) {

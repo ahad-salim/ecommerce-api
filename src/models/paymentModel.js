@@ -5,7 +5,7 @@ const paymentSchema = new mongoose.Schema(
     order: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Order",
-      required: true
+      required: true,
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -13,7 +13,7 @@ const paymentSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    provider: { type: String },
+    provider: { type: String, default: "fapshi" },
     amount: {
       type: Number,
       required: true,
@@ -37,7 +37,7 @@ const paymentSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "succeeded", "failed", "refunded"],
+      enum: ["created", "pending", "successful", "failed", "expired", "refunded"],
       default: "pending",
     },
     paidAt: Date,

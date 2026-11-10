@@ -1,7 +1,7 @@
 import { errorResponse } from "../utils/responseFormatter.js";
 
 export default function errorHandler(err, req, res, next) {
-  const statusCode = err.statusCode || err.ststus || 500;
+  const statusCode = err.statusCode || err.status || 500;
 
   if (err.type === "entity.parse.failed") {
     return errorResponse(res, "Malformed JSON body", ["INVALID_JSON"], 400);
@@ -40,7 +40,7 @@ export default function errorHandler(err, req, res, next) {
 
   if (statusCode >= 500) {
     console.error(err.stack);
-    return errorResponse(res, statusCode === 500 ? "Internal server error" : "Service temporarily unavailable", ["SEVER_ERROR"], statusCode);
+    return errorResponse(res, statusCode === 500 ? "Internal server error" : "Service temporarily unavailable", ["SERVER_ERROR"], statusCode);
   }
   return errorResponse(res, err.message, err.errors || [], statusCode);
 }

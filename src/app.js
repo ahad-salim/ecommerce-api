@@ -29,6 +29,7 @@ import notFound from "./middlewares/notFound.js";
 import { setupSwagger } from "./config/swagger.js";
 
 const app = express();
+app.set('trust proxy', 1)
 
 app.disable("x-powered-by");
 

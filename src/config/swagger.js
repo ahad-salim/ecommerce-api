@@ -11,13 +11,14 @@ const options = {
     },
     servers: [
       {
-        url: `${process.env.BASE_URL || "http://localhost:5500"}/api/v1`,
+        url: `${process.env.APP_URL|| "http://localhost:5500"}/api/v1`,
         development: "Development server",
       },
     ],
     tags: [
+      { name: "Health", description: "Service status" },
       {
-        name: "Auth",
+        name: "Authentication",
         description:
           "Registration, login, tokens, email verification and password reset",
       },
@@ -28,8 +29,7 @@ const options = {
       { name: "Cart", description: "Shopping cart" },
       { name: "Orders", description: "Customer orders" },
       { name: "Admin Orders", description: "Order management for admins" },
-      { name: "Payments", description: "Campay payments and refunds" },
-      { name: "Health", description: "Service status" },
+      { name: "Payments", description: "Fapshi payments and refunds" },
     ],
     paths: {
       "/health": {
@@ -92,16 +92,7 @@ const options = {
         },
         OrderStatus: {
           type: "string",
-          enum: [
-            "pending",
-            "paid",
-            "processing",
-            "shipped",
-            "delivered",
-            "failed",
-            "cancelled",
-            "refunded",
-          ],
+          enum: ["created", "pending", "successful", "failed", "expired", "refunded"],
         },
       },
       parameters: {

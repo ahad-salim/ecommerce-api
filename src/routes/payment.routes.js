@@ -9,6 +9,8 @@ import {
   webhookController,
 } from "../controllers/payment.controller.js";
 import authorize from "../middlewares/roleMiddleware.js";
+import verifyWebhookToken from "../middlewares/webhook.middleware.js";
+import { webhookLimiter } from "../middlewares/security.middleware.js";
 
 const router = express.Router();
 
@@ -16,52 +18,39 @@ const router = express.Router();
  * @swagger
  * /payments/webhook:
  *   post:
- *     summary: Campay webhook (called by Campay, not by clients)
- *     description: Parameters can arrive in the body (POST) or the query string (GET). The signature is verified. Not rate limited so provider retries are never blocked.
+ *     summary: Fapshi webhook
+ *     description: >
+ *       Protected by a secret token in the query string (the URL registered in the Fapshi dashboard). The body is only used to find the payment by transId; the real status is fetched from Fapshi. Safe to receive more than once. Has its own rate limit.
  *     tags: [Payments]
+ *     parameters:
+ *       - { in: query, name: token, required: true, schema: { type: string } }
  *     requestBody:
  *       content:
  *         application/json:
  *           schema:
  *             type: object
  *             properties:
- *               signature: { type: string }
- *               reference: { type: string }
- *               external_reference: { type: string, description: Our payment ID }
+ *               transId: { type: string, description: Fapshi transaction id }
+ *               status: { type: string, description: Ignored, we ask Fapshi }
+ *               externalId: { type: string, description: Our payment ID }
  *     responses:
  *       200:
  *         description: Webhook received
  *       400:
- *         description: Malformed webhook
+ *         description: Malformed webhook or payment details do not match
  *       401:
- *         description: Invalid webhook signature
+ *         description: Invalid webhook token
+ *       429:
+ *         description: Too many request
  */
-/**
- * @swagger
- * /payments/webhook:
- *   get:
- *     summary: Campay webhook (GET variant)
- *     tags: [Payments]
- *     parameters:
- *       - { in: query, name: signature, schema: { type: string } }
- *       - { in: query, name: reference, schema: { type: string } }
- *       - { in: query, name: external_reference, schema: { type: string } }
- *     responses:
- *       200:
- *         description: Webhook received
- *       400:
- *         description: Malformed webhook
- *       401:
- *         description: Invalid webhook signature
- */
-router.route("/webhook").post(webhookController).get(webhookController);
+router.post("/webhook", webhookLimiter, verifyWebhookToken, webhookController);
 
 /**
  * @swagger
  * /payments/checkout/{orderId}:
  *   post:
- *     summary: Start a Campay payment for a pending order
- *     description: Returns a payment session. Calling it again for the same order returns the existing session (200) instead of creating a new one (201).
+ *     summary: Start a Fapshi payment for a pending order
+ *     description: Returns a payment session with the Fapshi payment link. Calling it again for the same order returns the existing session (200) instead of creating a new one (201). Minimum order amount is 100 XAF. 
  *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
@@ -76,9 +65,11 @@ router.route("/webhook").post(webhookController).get(webhookController);
  *       201:
  *         description: Payment session created
  *       400:
- *         description: Order is not pending
+ *         description: Invalid order ID or amount below the minimum
  *       401: { $ref: "#/components/responses/Unauthorized" }
  *       404: { $ref: "#/components/responses/NotFound" }
+ *       409:
+ *         description: Order is not pending, has expired, or a payment is being created
  */
 router.post("/checkout/:orderId", authenticate, checkoutController);
 
@@ -87,7 +78,7 @@ router.post("/checkout/:orderId", authenticate, checkoutController);
  * /payments/{orderId}/refund:
  *   post:
  *     summary: Mark an order as refunded (admin only)
- *     description: Only updates our records. The money itself must be sent back from the Campay dashboard.
+ *     description: Only updates our records. The money itself must be sent back from the fapshi dashboard.
  *     tags: [Payments]
  *     security:
  *       - bearerAuth: []

@@ -28,7 +28,7 @@ const router = express.Router();
  * /auth/register:
  *   post:
  *     summary: Register a new customer account
- *     tags: [Auth]
+ *     tags: [Authentication]
  *     requestBody:
  *       required: true
  *       content:
@@ -55,7 +55,7 @@ router.post("/register", validate(registerSchema), registerUser);
  *   post:
  *     summary: Log in
  *     description: Returns an access token in the body and sets the refreshToken httpOnly cookie.
- *     tags: [Auth]
+ *     tags: [Authentication]
  *     requestBody:
  *       required: true
  *       content:
@@ -81,7 +81,7 @@ router.post("/login", validate(loginSchema), login);
  *   post:
  *     summary: Get a new access token using the refreshToken cookie
  *     description: No request body. The httpOnly refreshToken cookie is sent automatically by the browser, and a new refresh token cookie is issued (rotation).
- *     tags: [Auth]
+ *     tags: [Authentication]
  *     responses:
  *       200:
  *         description: Token refreshed successfully, returns a new accessToken
@@ -96,7 +96,7 @@ router.post("/refresh", refreshToken);
  *   post:
  *     summary: Log out and revoke the refresh token
  *     description: No request body. Reads the refreshToken cookie, revokes it and clears the cookie.
- *     tags: [Auth]
+ *     tags: [Authentication]
  *     responses:
  *       200:
  *         description: Logout successful
@@ -108,7 +108,7 @@ router.post("/logout", logout);
  * /auth/register-admin:
  *   post:
  *     summary: Create an admin account (admin only)
- *     tags: [Auth]
+ *     tags: [Authentication]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -144,7 +144,7 @@ router.post(
  * /auth/verify-email/{token}:
  *   get:
  *     summary: Verify an email address (link from the verification email)
- *     tags: [Auth]
+ *     tags: [Authentication]
  *     parameters:
  *       - in: path
  *         name: token
@@ -162,7 +162,7 @@ router.post(
  * /auth/verify-email/{token}:
  *   post:
  *     summary: Verify an email address (same as GET, for API clients)
- *     tags: [Auth]
+ *     tags: [Authentication]
  *     parameters:
  *       - in: path
  *         name: token
@@ -183,7 +183,7 @@ router.get("/verify-email/:token", verifyEmailController);
  *   post:
  *     summary: Resend the verification email
  *     description: Always answers the same way so it does not reveal whether the email is registered.
- *     tags: [Auth]
+ *     tags: [Authentication]
  *     requestBody:
  *       required: true
  *       content:
@@ -210,7 +210,7 @@ router.post(
  *   post:
  *     summary: Request a password reset email
  *     description: Always answers the same way so it does not reveal whether the email is registered.
- *     tags: [Auth]
+ *     tags: [Authentication]
  *     requestBody:
  *       required: true
  *       content:
@@ -236,7 +236,7 @@ router.post(
  * /auth/reset-password/{token}:
  *   post:
  *     summary: Set a new password using the token from the reset email
- *     tags: [Auth]
+ *     tags: [Authentication]
  *     parameters:
  *       - in: path
  *         name: token

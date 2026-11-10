@@ -24,9 +24,8 @@ const checkoutController = async (req, res, next) => {
 
 const webhookController = async (req, res, next) => {
   try {
-    const params = { ...req.body, ...req.query };
 
-    const result = await processWebhook(params);
+    const result = await processWebhook(req.body);
 
     return successResponse(res, "Webhook received", result);
   } catch (error) {
@@ -50,7 +49,7 @@ const refundController = async (req, res, next) => {
 
     return successResponse(
       res,
-      "Order marked as refunded. Send the money back from your Campay dashboard",
+      "Order marked as refunded. Send the money back from your fapshi dashboard",
       result.data,
     );
   } catch (error) {

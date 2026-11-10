@@ -6,10 +6,12 @@ import CartItem from "../models/cartItemModel.js";
 import AppError from "../utils/AppError.js";
 import { moveOutOfPending } from "./order.service.js";
 import {
+  MIN_AMOUNT,
   createPaymentLink,
+  expirePay,
   getTransactionStatus,
-  verifyWebhookSignature,
-} from "../utils/campay.js";
+  isValidTransId,
+} from "../utils/fapshi.js";
 
 const isObjectId = (value) =>
   typeof value === "string" && mongoose.Types.ObjectId.isValid(value);
@@ -31,7 +33,6 @@ const createCheckout = async (orderId, userId) => {
 
   if (!order) throw new AppError("Order not found", 404, "ORDER_NOT_FOUND");
 
-  // Business rule 5: only pending orders can be paid
   if (order.status !== "pending") {
     throw new AppError(
       "Only pending orders can be paid",
@@ -42,6 +43,14 @@ const createCheckout = async (orderId, userId) => {
 
   if (order.expiresAt <= new Date()) {
     throw new AppError("This order has expired", 409, "ORDER_EXPIRED");
+  }
+
+  if (order.totalAmount < MIN_AMOUNT) {
+    throw new AppError(
+      `Orders below ${MIN_AMOUNT} XAF cannot be paid online`,
+      400,
+      "AMOUNT_TOO_LOW",
+    );
   }
 
   // Same order, second click: hand back the live session instead of a new one
@@ -69,7 +78,8 @@ const createCheckout = async (orderId, userId) => {
     payment = await Payment.create({
       order: order._id,
       user: userId,
-      amount: order.totalAmount, // from OUR database, never from the client
+      provider: "fapshi",
+      amount: order.totalAmount, 
     });
   } catch (err) {
     if (err.code === 11000) {
@@ -82,17 +92,34 @@ const createCheckout = async (orderId, userId) => {
     throw err;
   }
 
+  let transId;
+
   try {
-    const { link } = await createPaymentLink({
+    const created = await createPaymentLink({
       amount: payment.amount,
-      description: `Order ${order._id}`,
-      externalReference: payment._id, // comes back in the webhook
+      message: `Order of ${order._id}`,
+      externalId: payment._id,
+      userId,
       redirectUrl: process.env.PAYMENT_REDIRECT_URL,
     });
 
-    payment.paymentUrl = link;
+    transId = created.transId;
+
+    
+    payment.paymentUrl = created.link;
+    payment.providerRef = created.transId;
     await payment.save();
   } catch (err) {
+    // If the link was created but we could not save it, kill the link so nobody can pay for something we have no record of.
+    if (transId) {
+      await expirePay(transId).catch((expireErr) =>
+        console.error("EXPIRE_PAY_FAILED", {
+          payment: String(payment._id),
+          message: expireErr.message,
+        }),
+      );
+    }
+
     // Free the "one pending payment per order" slot so the customer can retry
     await Payment.updateOne(
       { _id: payment._id, status: "pending" },
@@ -110,24 +137,12 @@ const createCheckout = async (orderId, userId) => {
 };
 
 
-
 async function claimPayment(paymentId, status, fields) {
-  try {
-    return await Payment.findOneAndUpdate(
-      { _id: paymentId, status: "pending" },
-      { status, ...fields },
-      { returnDocument: "after" },
-    );
-  } catch (err) {
-    if (err.code === 11000) {
-      throw new AppError(
-        "This transaction reference was already used",
-        409,
-        "REFERENCE_ALREADY_USED",
-      );
-    }
-    throw err;
-  }
+  return Payment.findOneAndUpdate(
+    { _id: paymentId, status: "pending" },
+    { status, ...fields },
+    { returnDocument: "after" },
+  );
 }
 
 async function finalizePaidOrder(payment) {
@@ -154,76 +169,88 @@ async function finalizePaidOrder(payment) {
   if (cart) await CartItem.deleteMany({ cart: cart._id });
 }
 
-const processWebhook = async (params) => {
-  const {
-    signature,
-    reference,
-    external_reference: externalReference,
-  } = params;
-
-  if (!verifyWebhookSignature(signature)) {
-    throw new AppError("Invalid webhook signature", 401, "INVALID_SIGNATURE");
-  }
-
-  if (typeof reference !== "string" || !isObjectId(externalReference)) {
-    throw new AppError("Malformed webhook", 400, "INVALID_WEBHOOK");
-  }
-
-  const payment = await Payment.findById(externalReference);
-
-  if (!payment) {
-    throw new AppError("Payment not found", 404, "PAYMENT_NOT_FOUND");
-  }
-
-  const tx = await getTransactionStatus(reference);
+async function settlePayment(payment) {
+  const tx = await getTransactionStatus(payment.providerRef);
   const txStatus = String(tx?.status ?? "").toUpperCase();
 
   const mismatch =
     Number(tx?.amount) !== payment.amount ||
-    (tx?.currency && tx.currency !== payment.currency) ||
-    (tx?.external_reference &&
-      String(tx.external_reference) !== String(payment._id)) ||
-    (payment.providerRef && payment.providerRef !== reference);
+    (tx?.transId && tx.transId !== payment.providerRef) ||
+    (tx?.externalId && String(tx.externalId) !== String(payment._id));
 
   if (mismatch) {
     console.error("PAYMENT_MISMATCH", {
       payment: String(payment._id),
-      reference,
+      transId: payment.providerRef,
     });
     throw new AppError("Payment details do not match", 400, "PAYMENT_MISMATCH");
   }
 
   if (txStatus === "SUCCESSFUL") {
-    const claimed = await claimPayment(payment._id, "succeeded", {
-      providerRef: reference,
+    const claimed = await claimPayment(payment._id, "successful", {
       paidAt: new Date(),
     });
 
     const current = claimed ?? (await Payment.findById(payment._id));
 
-    if (current.status === "succeeded") await finalizePaidOrder(current);
+    if (current?.status === "successful") {
+      await finalizePaidOrder(current);
+    } else {
+      console.error("PAYMENT_ORPHANED", {
+        payment: String(payment._id),
+        order: String(payment.order),
+        localStatus: current?.status ?? "missing",
+      });
+    }
 
     return { processed: Boolean(claimed) };
   }
 
   if (txStatus === "FAILED") {
     const claimed = await claimPayment(payment._id, "failed", {
-      providerRef: reference,
       failedAt: new Date(),
-      failureReason: "PAYMENT_DECLINED",
+      failureReason: "PAYMENT_DECLINED", 
     });
 
     const current = claimed ?? (await Payment.findById(payment._id));
 
-   
-    if (current.status === "failed") {
+    if (current?.status === "failed") {
       await moveOutOfPending({ _id: payment.order }, "failed");
     }
 
     return { processed: Boolean(claimed) };
   }
 
+  if (txStatus === "EXPIRED") {
+    const claimed = await claimPayment(payment._id, "expired", {
+      failedAt: new Date(),
+      failureReason: "PAYMENT_EXPIRED",
+    });
+
+    const current = claimed ?? (await Payment.findById(payment._id));
+
+    if (current?.status === "expired") {
+      await moveOutOfPending({ _id: payment.order }, "cancelled");
+    }
+
+    return { processed: Boolean(claimed) };
+  }
+
   return { processed: false };
+}
+
+const processWebhook = async (body) => {
+  const transId = body?.transId;
+
+  if (!isValidTransId(transId)) {
+    throw new AppError("Malformed webhook", 400, "INVALID_WEBHOOK");
+  }
+
+  const payment = await Payment.findOne({ providerRef: transId });
+
+  if (!payment) return { processed: false };
+
+  return settlePayment(payment);
 };
 
 const getPaymentStatus = async (orderId, requester) => {
@@ -234,16 +261,25 @@ const getPaymentStatus = async (orderId, requester) => {
   const filter = { order: orderId };
   if (requester.role !== "admin") filter.user = requester.id;
 
-  const payment = await Payment.findOne(filter)
-    .sort({ createdAt: -1 })
-    .select("-__v")
-    .lean();
+  let payment = await Payment.findOne(filter).sort({ createdAt: -1 });
 
   if (!payment) {
     throw new AppError("Payment not found", 404, "PAYMENT_NOT_FOUND");
   }
 
-  return { data: payment };
+  if (payment.status === "pending" && payment.providerRef) {
+    try {
+      await settlePayment(payment);
+      payment = await Payment.findById(payment._id);
+    } catch (err) {
+      console.error("PAYMENT_SYNC_FAILED", {
+        payment: String(payment._id),
+        message: err.message,
+      });
+    }
+  }
+
+  return { data: payment.toObject({ versionKey: false }) };
 };
 
 export { createCheckout, processWebhook, getPaymentStatus };
