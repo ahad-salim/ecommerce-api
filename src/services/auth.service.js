@@ -60,7 +60,7 @@ async function issueRefreshToken(userId) {
   return refreshToken;
 }
 
-async function registerNewUser({ name, email, password }) {
+async function registerNewUser({ name, email, password, role = "customer", isVerified = false }) {
   const exist = await checkIfUserExist(email);
 
   if (exist) {
@@ -74,6 +74,7 @@ async function registerNewUser({ name, email, password }) {
     name,
     email,
     password: await hashPassword(password),
+    role,
     isVerified: !needsVerification,
     ...(needsVerification && {
       emailVerificationToken: tokenHash,
@@ -259,7 +260,7 @@ async function refreshUserToken(refreshToken) {
     throw new AppError("User no longer exist", 401, "USER_NO_LONGER_EXIST");
   }
 
-  const claimed = await RefreshToken.findByIdAndUpdate(
+  const claimed = await RefreshToken.findOneAndUpdate(
     { _id: storedToken._id, revokedAt: null },
     { revokedAt: new Date() },
   );
