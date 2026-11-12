@@ -19,6 +19,7 @@ import {
 } from "../validators/auth.validator.js";
 import authenticate from "../middlewares/authMiddleware.js";
 import authorize from "../middlewares/roleMiddleware.js";
+import { authLimiter, strictLimiter } from "../middlewares/security.middleware.js";
 
 const router = express.Router();
 
@@ -47,7 +48,7 @@ const router = express.Router();
  *       409:
  *         description: User already exists
  */
-router.post("/register", validate(registerSchema), registerUser);
+router.post("/register", authLimiter, validate(registerSchema), registerUser);
 
 /**
  * @swagger
@@ -73,7 +74,7 @@ router.post("/register", validate(registerSchema), registerUser);
  *       401:
  *         description: Invalid email or password
  */
-router.post("/login", validate(loginSchema), login);
+router.post("/login", authLimiter, validate(loginSchema), login);
 
 /**
  * @swagger
@@ -133,6 +134,7 @@ router.post("/logout", logout);
  */
 router.post(
   "/register-admin",
+  strictLimiter,
   authenticate,
   authorize("admin"),
   validate(registerSchema),
@@ -227,6 +229,7 @@ router.post(
  */
 router.post(
   "/forgot-password",
+  strictLimiter,
   validate(forgotPasswordSchema),
   forgotPasswordController,
 );
@@ -259,6 +262,7 @@ router.post(
  */
 router.post(
   "/reset-password/:token",
+  strictLimiter,
   validate(resetPasswordSchema),
   resetPasswordController,
 );
