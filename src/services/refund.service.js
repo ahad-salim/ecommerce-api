@@ -26,7 +26,7 @@ export const refundOrder = async (orderId) => {
   }
 
   const payment = await Payment.findOneAndUpdate(
-    { order: order._id, status: "succeeded" },
+    { order: order._id, status: "successful" },
     { status: "refunded", refundedAt: new Date() },
     { returnDocument: "after" },
   );
@@ -48,7 +48,7 @@ export const refundOrder = async (orderId) => {
   if (!updated) {
     await Payment.updateOne(
       { _id: payment._id, status: "refunded" },
-      { status: "succeeded", $unset: { refundedAt: 1 } },
+      { status: "successful", $unset: { refundedAt: 1 } },
     );
 
     throw new AppError(

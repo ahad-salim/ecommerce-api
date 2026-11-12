@@ -50,7 +50,7 @@ router.post("/webhook", webhookLimiter, verifyWebhookToken, webhookController);
  * /payments/checkout/{orderId}:
  *   post:
  *     summary: Start a Fapshi payment for a pending order
- *     description: Returns a payment session with the Fapshi payment link. Calling it again for the same order returns the existing session (200) instead of creating a new one (201). Minimum order amount is 100 XAF. 
+ *     description: Returns a payment session with the Fapshi payment link. Calling it again for the same order returns the existing session instead of creating a new one. Minimum order amount is 100 XAF. 
  *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
